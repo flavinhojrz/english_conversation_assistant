@@ -1,8 +1,7 @@
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
-from gtts import gTTS
-from playsound3 import playsound 
+from google.cloud import texttospeech
 
 # Carregando variavel ambiente e inicializando IA
 load_dotenv()
@@ -24,10 +23,28 @@ model = genai.GenerativeModel(
 
 chat = model.start_chat(history=[])
 
-def text_to_speech(text, lang='en'):
-	tts = gTTS(text=text, lang=lang)
-	tts.save("output.mp3")
-	playsound("output.mp3")
+def synthesize_text(text):
+	client = texttospeech.TextToSpeechClient()
+
+	input_text = texttospeech.SynthesisInput(text=text)
+
+	voice = texttospeech.VoiceSelectionParams(
+		language_code="en-US",
+		name="en-US-Standard-C",
+		ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
+	)
+
+	audio_config = texttospeech.AudioConfig(
+		audio_encoding=texttospeech.AudioEncoding.MP3
+	)
+
+	response = client.synthesize_speech(
+		request={"input": input_text, "voice": voice, "audio_config": audio_config}
+	)
+
+	with open("output.mp3", "wb") as out:
+		out.write(response.audio_content)
+		print('Audio content written to file "output.mp3"')
 
 def interactive_chat():
 	while True:
@@ -37,7 +54,11 @@ def interactive_chat():
 			break
 		response = chat.send_message(user_input)
 		print(f"Chatbot (Professor de Inglês): {response.text}")
-		text_to_speech(response.text)
+		synthesize_text(response.text)
 
 # Iniciando a conversa interativa
 interactive_chat()
+
+
+
+
