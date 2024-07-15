@@ -1,9 +1,10 @@
 import os
+import json
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.cloud import texttospeech
 
-# Carregando variavel ambiente e inicializando IA
+# Carregando variáveis de ambiente e inicializando IA
 load_dotenv()
 genai.configure(api_key=os.environ.get('API_KEY'))
 
@@ -42,23 +43,36 @@ def synthesize_text(text):
 		request={"input": input_text, "voice": voice, "audio_config": audio_config}
 	)
 
-	with open("output.mp3", "wb") as out:
+	output_file = "output.mp3"
+	with open(output_file, "wb") as out:
 		out.write(response.audio_content)
-		print('Audio content written to file "output.mp3"')
+		print(f'Audio content written to file "{output_file}"')
+
+	return output_file
 
 def interactive_chat():
 	while True:
 		user_input = input(">> ")
 		if user_input.lower() == 'sair':
-			print("Encerrando a conversa.")
-			break
+				print("Encerrando a conversa.")
+				break
 		response = chat.send_message(user_input)
 		print(f"Chatbot (Professor de Inglês): {response.text}")
-		synthesize_text(response.text)
+		
+		try:
+			audio_file = synthesize_text(response.text)
+			result = {
+				"status": "success",
+				"text": response.text,
+				"audio_file": audio_file
+			}
+		except Exception as e:
+			result = {
+				"status": "error",
+				"message": str(e)
+			}
+
+		print(json.dumps(result, indent=4))
 
 # Iniciando a conversa interativa
 interactive_chat()
-
-
-
-
